@@ -1,4 +1,3 @@
-import { CoachChat } from "@/components/coach/CoachChat";
 import { DownloadPdfButton } from "@/components/export/DownloadPdfButton";
 import { GapScore } from "@/components/score/GapScore";
 import { InvestmentScore } from "@/components/score/InvestmentScore";
@@ -27,9 +26,6 @@ export function RoadmapView({
   currentMilestoneIndex = 0,
   showRecalibrate = false,
 }: RoadmapViewProps) {
-  const currentMilestone = roadmap.milestones?.find(
-    (m) => m.index === currentMilestoneIndex
-  );
   const gapScore = roadmap.gap_score;
   const endDate = aspiration.end_date
     ? new Date(`${aspiration.end_date}T00:00:00`)
@@ -213,13 +209,6 @@ export function RoadmapView({
       </section>
 
       <RepairProgressButton roadmapId={roadmap.id} />
-
-      <CoachChat
-        aspirationTitle={aspiration.title}
-        investmentScore={investmentScore}
-        gapScore={gapScore?.overall ?? null}
-        currentMilestoneLabel={currentMilestone?.label ?? null}
-      />
     </div>
   );
 }

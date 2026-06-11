@@ -91,9 +91,7 @@ export function ProfileForm({
           value={avatarUrl}
           onChange={(e) => setAvatarUrl(e.target.value)}
         />
-        <p className="text-xs text-text-muted">
-          Paste an image URL. File upload will come in a later phase.
-        </p>
+        <p className="text-xs text-text-muted">Paste an image URL.</p>
       </div>
 
       {error && (

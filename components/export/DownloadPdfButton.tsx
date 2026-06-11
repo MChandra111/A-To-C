@@ -41,9 +41,6 @@ export function DownloadPdfButton({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const defaultLabel =
-    scope === "dashboard" ? "Download report (PDF)" : "Download report (PDF)";
-
   async function handleDownload() {
     setLoading(true);
     setError(null);
@@ -73,7 +70,7 @@ export function DownloadPdfButton({
         onClick={handleDownload}
         disabled={loading}
       >
-        {loading ? "Generating PDF…" : (label ?? defaultLabel)}
+        {loading ? "Generating PDF…" : (label ?? "Download report (PDF)")}
       </Button>
       {error && (
         <p className="text-xs text-decline" role="alert">

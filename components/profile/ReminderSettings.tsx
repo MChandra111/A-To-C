@@ -20,7 +20,6 @@ interface ReminderSettingsProps {
   userId: string;
   initialEnabled: boolean;
   initialDay: number | null;
-  initialTime?: string | null;
 }
 
 export function ReminderSettings({

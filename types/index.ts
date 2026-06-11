@@ -1,21 +1,3 @@
-export interface Profile {
-  id: string;
-  display_name: string | null;
-  avatar_url: string | null;
-  reminder_enabled: boolean;
-  reminder_day_of_week: number | null;
-  reminder_time: string | null;
-  created_at: string;
-}
-
-export interface RoadmapShare {
-  id: string;
-  roadmap_id: string;
-  user_id: string;
-  share_token: string;
-  created_at: string;
-}
-
 export interface Capability {
   id: string;
   user_id: string;
@@ -48,17 +30,6 @@ export type CheckInInterval = (typeof CHECK_IN_INTERVALS)[number];
 
 export const HOURS_PER_WEEK_OPTIONS = [1, 3, 5, 10] as const;
 export type HoursPerWeek = (typeof HOURS_PER_WEEK_OPTIONS)[number];
-
-export interface UrlRequirementsCacheEntry {
-  normalized_url: string;
-  source_url: string;
-  requirements_text: string;
-  model: string;
-  created_at: string;
-  updated_at: string;
-  expires_at: string;
-  hit_count: number;
-}
 
 export interface Aspiration {
   id: string;
@@ -119,7 +90,7 @@ export interface LibraryResource {
   skillArea: string;
   format: ResourceFormat;
   mentionCount?: number;
-  sourceAspiration?: string;
+  milestoneLabel?: string;
 }
 
 export interface RoadmapActionItem {

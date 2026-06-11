@@ -1,10 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 
-/**
- * Returns Investment Score time-series for the authenticated user.
- *
- * TODO (V2): add rate limiting, pagination, and API key auth for power users.
- */
+/** Returns Investment Score time-series for the authenticated user. */
 export async function GET(request: Request) {
   const supabase = await createClient();
   const {

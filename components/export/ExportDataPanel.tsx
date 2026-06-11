@@ -45,9 +45,6 @@ export function ExportDataPanel() {
           {downloading ? "Downloading…" : "Download scores (CSV)"}
         </Button>
       </div>
-      <p className="font-mono text-xs text-text-muted">
-        JSON API: GET /api/user/scores — TODO (V2): API key auth
-      </p>
     </div>
   );
 }

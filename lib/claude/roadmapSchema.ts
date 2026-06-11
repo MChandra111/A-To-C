@@ -66,8 +66,6 @@ export const roadmapOutputSchema = z.object({
 });
 
 export type RoadmapOutput = z.infer<typeof roadmapOutputSchema>;
-export type RoadmapMilestone = z.infer<typeof milestoneSchema>;
-export type GapScore = RoadmapOutput["gap_score"];
 
 export function parseRoadmapJson(raw: string): RoadmapOutput {
   const trimmed = raw.trim();

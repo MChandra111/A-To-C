@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AiNudge } from "@/components/checkin/AiNudge";
-import { CoachChat } from "@/components/coach/CoachChat";
 import { EffortSelector } from "@/components/checkin/EffortSelector";
 import { ScoreReveal } from "@/components/checkin/ScoreReveal";
 import { InvestmentScore } from "@/components/score/InvestmentScore";
@@ -266,12 +265,6 @@ export function CheckInSteps({
           </div>
         )}
       </div>
-
-      <CoachChat
-        aspirationTitle={aspirationTitle}
-        investmentScore={currentScore}
-        currentMilestoneLabel={milestone.label}
-      />
     </div>
   );
 }

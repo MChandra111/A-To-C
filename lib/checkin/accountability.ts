@@ -1,4 +1,4 @@
-import { addInterval, getWeighInStatus } from "@/lib/dashboard/weighInSchedule";
+import { addInterval } from "@/lib/dashboard/weighInSchedule";
 import type { CheckInInterval } from "@/types";
 
 function startOfDay(date: Date): Date {
@@ -59,14 +59,4 @@ export function needsRecalibration(
 
   if (milestonesBehind <= 0) return false;
   return milestonesBehind * weeksPerMilestone >= 4;
-}
-
-export function isCheckinOverdue(
-  interval: CheckInInterval,
-  lastCheckin: Date | null,
-  baselineDate: string | null,
-  reference = new Date()
-): boolean {
-  return getWeighInStatus(interval, lastCheckin, baselineDate, reference)
-    .isOverdue;
 }

@@ -138,6 +138,3 @@ export async function generateRoadmap(
 
   return parseRoadmapJson(text);
 }
-
-/** @deprecated Use generateRoadmap */
-export const generateRoadmapWithRetry = generateRoadmap;

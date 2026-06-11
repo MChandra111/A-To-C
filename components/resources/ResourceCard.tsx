@@ -32,9 +32,12 @@ export function ResourceCard({ resource }: ResourceCardProps) {
             <p className="font-medium text-text-primary">{resource.name}</p>
           )}
 
-          {resource.sourceAspiration && (
+          {resource.milestoneLabel && (
             <p className="text-xs text-text-muted">
-              From: {resource.sourceAspiration}
+              {resource.milestoneLabel}
+              {resource.mentionCount != null && resource.mentionCount > 1
+                ? ` · cited ${resource.mentionCount}× in this roadmap`
+                : ""}
             </p>
           )}
         </div>
@@ -61,11 +64,6 @@ export function ResourceCard({ resource }: ResourceCardProps) {
         <span className="rounded border border-border px-1.5 py-0.5 font-mono text-xs text-text-muted">
           {resource.skillArea}
         </span>
-        {resource.mentionCount != null && resource.mentionCount > 1 && (
-          <span className="font-mono text-xs text-text-muted">
-            ×{resource.mentionCount} roadmaps
-          </span>
-        )}
       </div>
     </article>
   );

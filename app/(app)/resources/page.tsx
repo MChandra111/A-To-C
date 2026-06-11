@@ -13,7 +13,7 @@ export default async function ResourcesPage() {
     redirect("/login");
   }
 
-  const resources = await getResourceLibrary(user.id);
+  const groups = await getResourceLibrary();
 
-  return <ResourceLibraryView resources={resources} />;
+  return <ResourceLibraryView groups={groups} />;
 }

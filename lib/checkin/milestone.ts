@@ -4,7 +4,6 @@ import type { CheckInInterval } from "@/types";
 export {
   type ActionCompletion,
   buildEarlyFinishMessage,
-  getBestEffortForItem,
   getMilestoneByIndex,
   getMilestoneObjectiveProgress,
   getNextMilestone,

@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 
   const { data: profiles } = await admin
     .from("profiles")
-    .select("id, display_name, reminder_day_of_week, reminder_time")
+    .select("id, display_name, reminder_day_of_week")
     .eq("reminder_enabled", true)
     .eq("reminder_day_of_week", dayOfWeek);
 

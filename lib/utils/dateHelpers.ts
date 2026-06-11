@@ -1,14 +1,4 @@
-export const CHECK_IN_INTERVALS = [
-  "daily",
-  "weekly",
-  "biweekly",
-  "monthly",
-] as const;
-
-export type CheckInInterval = (typeof CHECK_IN_INTERVALS)[number];
-
-export const HOURS_PER_WEEK_OPTIONS = [1, 3, 5, 10] as const;
-export type HoursPerWeek = (typeof HOURS_PER_WEEK_OPTIONS)[number];
+import type { CheckInInterval, HoursPerWeek } from "@/types";
 
 const MONTH_NAMES = [
   "January",
