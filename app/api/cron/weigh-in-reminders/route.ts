@@ -17,10 +17,11 @@ function isAuthorized(request: Request): boolean {
 }
 
 /**
- * Hourly cron scaffold — finds users with reminders due and queues emails.
- * TODO: integrate with Resend or SendGrid via sendWeighInReminder().
+ * Daily cron scaffold — runs once per day (Vercel Hobby limit).
+ * Matches users by reminder day of week (UTC). On Pro, switch vercel.json
+ * to an hourly schedule and re-enable hour matching below.
  *
- * Vercel Cron: configure in vercel.json (see project root).
+ * TODO: integrate with Resend or SendGrid via sendWeighInReminder().
  */
 export async function GET(request: Request) {
   if (!isAuthorized(request)) {
@@ -38,9 +39,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const now = new Date();
-  const dayOfWeek = now.getUTCDay();
-  const hourUtc = now.getUTCHours();
+  const dayOfWeek = new Date().getUTCDay();
 
   const { data: profiles } = await admin
     .from("profiles")
@@ -53,12 +52,6 @@ export async function GET(request: Request) {
   const previews: { subject: string; user_id: string }[] = [];
 
   for (const profile of profiles ?? []) {
-    const reminderHour = Number.parseInt(
-      profile.reminder_time?.slice(0, 2) ?? "-1",
-      10
-    );
-    if (reminderHour !== hourUtc) continue;
-
     const { data: authUser } = await admin.auth.admin.getUserById(profile.id);
     const email = authUser?.user?.email;
     if (!email) continue;

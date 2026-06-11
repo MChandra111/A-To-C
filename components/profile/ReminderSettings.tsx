@@ -20,23 +20,19 @@ interface ReminderSettingsProps {
   userId: string;
   initialEnabled: boolean;
   initialDay: number | null;
-  initialTime: string | null;
+  initialTime?: string | null;
 }
 
 export function ReminderSettings({
   userId,
   initialEnabled,
   initialDay,
-  initialTime,
 }: ReminderSettingsProps) {
   const router = useRouter();
   const supabase = createClient();
 
   const [enabled, setEnabled] = useState(initialEnabled);
   const [day, setDay] = useState(initialDay ?? 1);
-  const [time, setTime] = useState(
-    initialTime?.slice(0, 5) ?? "09:00"
-  );
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +49,7 @@ export function ReminderSettings({
         .update({
           reminder_enabled: enabled,
           reminder_day_of_week: enabled ? day : null,
-          reminder_time: enabled ? `${time}:00` : null,
+          reminder_time: enabled ? "14:00:00" : null,
         })
         .eq("id", userId);
 
@@ -73,8 +69,9 @@ export function ReminderSettings({
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <p className="text-sm text-text-muted">
-        Weigh-in reminders reference your Investment Score, not your task list.
-        Email delivery is scaffolded — configure Resend or SendGrid to activate.
+        One email per week on your chosen day (~14:00 UTC). Reminders reference
+        your Investment Score, not your task list. Email delivery is scaffolded —
+        configure Resend or SendGrid to activate.
       </p>
 
       <label className="flex cursor-pointer items-center gap-3">
@@ -88,32 +85,20 @@ export function ReminderSettings({
       </label>
 
       {enabled && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="reminderDay">Day of week</Label>
-            <select
-              id="reminderDay"
-              value={day}
-              onChange={(e) => setDay(Number(e.target.value))}
-              className="flex h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-text-primary"
-            >
-              {DAYS.map((d) => (
-                <option key={d.value} value={d.value}>
-                  {d.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="reminderTime">Time (UTC)</Label>
-            <input
-              id="reminderTime"
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="flex h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-text-primary"
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="reminderDay">Reminder day (UTC)</Label>
+          <select
+            id="reminderDay"
+            value={day}
+            onChange={(e) => setDay(Number(e.target.value))}
+            className="flex h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-text-primary"
+          >
+            {DAYS.map((d) => (
+              <option key={d.value} value={d.value}>
+                {d.label}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
