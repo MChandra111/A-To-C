@@ -60,12 +60,22 @@ The product is built around one idea: **it's a scale, not a to-do list.** A bath
 
 3. Run migration `006_stripe_webhooks.sql` for automated Guru upgrades after payment.
 
-4. **Stripe Guru checkout** — In the Stripe Dashboard for your Payment Link:
+4. **Google OAuth** — Required for "Continue with Google" sign-in:
+   - In [Supabase](https://supabase.com/dashboard) → **Authentication** → **Providers** → **Google**: enable the provider and paste your Google OAuth client ID and secret.
+   - In [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials** → your OAuth client:
+     - **Authorized JavaScript origins**: `http://localhost:3000` (and your production URL)
+     - **Authorized redirect URI**: `https://<your-supabase-project-ref>.supabase.co/auth/v1/callback`
+   - In Supabase → **Authentication** → **URL Configuration**:
+     - **Site URL**: `http://localhost:3000` (or production URL)
+     - **Redirect URLs**: add `http://localhost:3000/auth/callback` (exact match, no query string) and your production callback URL. Alternatively use `http://localhost:3000/**` as a wildcard.
+   - Set `NEXT_PUBLIC_APP_URL` in `.env.local` to match the Site URL (used for OAuth `redirectTo`).
+
+5. **Stripe Guru checkout** — In the Stripe Dashboard for your Payment Link:
    - Set the **success URL** to `{NEXT_PUBLIC_APP_URL}/upgrade?checkout=success`
    - Add a webhook endpoint `POST {NEXT_PUBLIC_APP_URL}/api/webhooks/stripe` listening for `checkout.session.completed` (and `checkout.session.async_payment_succeeded` if needed)
    - Copy the webhook signing secret to `STRIPE_WEBHOOK_SECRET`
 
-5. Install and run:
+6. Install and run:
    ```bash
    npm install
    npm run dev

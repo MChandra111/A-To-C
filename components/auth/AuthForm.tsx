@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getSiteUrl, setOAuthRedirectCookie } from "@/lib/supabase/siteUrl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,13 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const authError = searchParams.get("error");
+    if (authError === "auth_callback_failed") {
+      setError("Google sign-in could not be completed. Please try again.");
+    }
+  }, [searchParams]);
 
   async function handleEmailAuth(e: React.FormEvent) {
     e.preventDefault();
@@ -61,10 +69,13 @@ export function AuthForm({ mode }: AuthFormProps) {
     setLoading(true);
 
     try {
+      // redirectTo must match Supabase allowlist exactly — no query params.
+      setOAuthRedirectCookie(redirect);
+
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirect)}`,
+          redirectTo: `${getSiteUrl()}/auth/callback`,
         },
       });
 

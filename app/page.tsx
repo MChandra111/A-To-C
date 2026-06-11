@@ -1,7 +1,30 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
+import { LandingPage } from "@/components/landing/LandingPage";
+
+export const metadata: Metadata = {
+  title: "A-To-C | Turn Ambitions into Trackable Roadmaps",
+  description:
+    "A-To-C helps students, career changers, and lifelong learners bridge the gap between where they are and where they want to be. AI-powered roadmaps, honest progress tracking, and a personal Investment Score.",
+  keywords: [
+    "career change roadmap",
+    "self-investment tracker",
+    "learning path planner",
+    "goal tracking app",
+    "career pivot tool",
+    "AI career coach",
+    "student goal planning",
+    "reskilling after AI",
+    "personal development tracker",
+  ],
+  openGraph: {
+    title: "A-To-C | Aspirations to Capabilities",
+    description:
+      "Measure your dedication to self-investment. Structured roadmaps and honest progress tracking for anyone ready to make a change.",
+    type: "website",
+  },
+};
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -13,28 +36,5 @@ export default async function HomePage() {
     redirect("/dashboard");
   }
 
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4">
-      <div className="max-w-lg text-center">
-        <p className="mb-2 font-mono text-xs uppercase tracking-widest text-primary">
-          Aspirations to Capabilities
-        </p>
-        <h1 className="font-display text-5xl font-bold tracking-tight text-text-primary">
-          A-To-C
-        </h1>
-        <p className="mt-4 text-lg text-text-muted">
-          A personal instrument for measuring dedication to self-investment.
-          Like a scale for your ambitions.
-        </p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Button asChild size="lg">
-            <Link href="/signup">Get started</Link>
-          </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link href="/login">Sign in</Link>
-          </Button>
-        </div>
-      </div>
-    </main>
-  );
+  return <LandingPage />;
 }
