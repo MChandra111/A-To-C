@@ -1,3 +1,17 @@
+export const PLAN_TIERS = ["free", "guru"] as const;
+export type PlanTier = (typeof PLAN_TIERS)[number];
+
+export interface Profile {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  plan_tier: PlanTier;
+  reminder_enabled: boolean;
+  reminder_day_of_week: number | null;
+  reminder_time: string | null;
+  created_at: string;
+}
+
 export interface Capability {
   id: string;
   user_id: string;
@@ -127,6 +141,7 @@ export interface Roadmap {
   quick_wins: { action: string; time_estimate: string }[] | null;
   risk_factors: { risk: string; mitigation: string }[] | null;
   milestones: RoadmapMilestone[] | null;
+  total_milestone_count: number | null;
   cost_summary: RoadmapCostSummary | null;
   baseline_date: string | null;
   generated_at: string;

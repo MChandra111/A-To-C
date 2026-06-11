@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GuruUpsell } from "@/components/plans/GuruUpsell";
 import { DriftAlert } from "@/components/score/DriftAlert";
 import { AspirationCard } from "@/components/dashboard/AspirationCard";
 import { DashboardHero } from "@/components/dashboard/DashboardHero";
@@ -139,17 +140,35 @@ export function DashboardView({ data }: DashboardViewProps) {
       />
 
       {data.activeGoals.length === 0 && data.hasAnyGoals && (
-        <div className="rounded-xl border border-dashed border-border bg-surface/50 p-6 text-center">
-          <p className="text-sm text-text-muted">
-            No active goals right now.{" "}
-            <Link
-              href="/onboard/capabilities"
-              className="text-primary hover:underline"
-            >
-              Start a new aspiration
-            </Link>
-          </p>
+        <div className="rounded-xl border border-dashed border-border bg-surface/50 p-6">
+          {data.canCreateRoadmap ? (
+            <p className="text-center text-sm text-text-muted">
+              No active goals right now.{" "}
+              <Link
+                href="/onboard/capabilities"
+                className="text-primary hover:underline"
+              >
+                Start a new aspiration
+              </Link>
+            </p>
+          ) : (
+            <GuruUpsell
+              compact
+              title="One roadmap on Free"
+              description="Upgrade to Guru to start another aspiration and generate additional roadmaps."
+            />
+          )}
         </div>
+      )}
+
+      {data.hasAnyGoals && data.canCreateRoadmap && data.planTier === "free" && (
+        <p className="text-center text-xs text-text-muted">
+          Free plan: one roadmap.{" "}
+          <Link href="/upgrade" className="text-primary hover:underline">
+            Upgrade to Guru
+          </Link>{" "}
+          for more.
+        </p>
       )}
 
       <GoalSection

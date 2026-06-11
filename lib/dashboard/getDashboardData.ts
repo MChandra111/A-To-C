@@ -10,7 +10,15 @@ import {
   resolveCurrentMilestoneIndex,
   type ActionCompletion,
 } from "@/lib/checkin/milestoneProgress";
+import { FREE_MAX_ROADMAPS } from "@/lib/plans/constants";
+import { getUserPlan, isGuruPlan } from "@/lib/plans/getUserPlan";
+import { countUserRoadmaps } from "@/lib/plans/limits";
+import {
+  getStoredMilestonesForPlan,
+  getTotalMilestoneCount,
+} from "@/lib/plans/roadmapAccess";
 import { createClient } from "@/lib/supabase/server";
+import type { PlanTier } from "@/types";
 import {
   daysSince,
   daysUntilEndDate,
@@ -65,10 +73,13 @@ export interface DashboardGoalCard {
   missedWeighIns: number;
   showReEntryPrompt: boolean;
   showRecalibrationOffer: boolean;
+  canUseFinishEarly: boolean;
 }
 
 export interface DashboardData {
   displayName: string;
+  planTier: PlanTier;
+  canCreateRoadmap: boolean;
   overallScore: number;
   trends: Record<TrendPeriod, ScorePoint[]>;
   driftAlert: DriftAlertData | null;
@@ -112,11 +123,11 @@ export async function getDashboardData(): Promise<DashboardData | null> {
 
   if (!user) return null;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name")
-    .eq("id", user.id)
-    .single();
+  const [{ data: profile }, planTier, roadmapCount] = await Promise.all([
+    supabase.from("profiles").select("display_name").eq("id", user.id).single(),
+    getUserPlan(supabase, user.id),
+    countUserRoadmaps(supabase, user.id),
+  ]);
 
   const displayName =
     profile?.display_name ||
@@ -239,13 +250,18 @@ export async function getDashboardData(): Promise<DashboardData | null> {
         effort: c.effort as ActionCompletion["effort"],
       }));
 
-    const milestoneIndex = resolveCurrentMilestoneIndex(
+    const accessibleMilestones = getStoredMilestonesForPlan(
       roadmap.milestones,
+      planTier
+    );
+
+    const milestoneIndex = resolveCurrentMilestoneIndex(
+      accessibleMilestones,
       roadmapCompletions
     );
 
     const currentMilestone = getMilestoneByIndex(
-      roadmap.milestones,
+      accessibleMilestones,
       milestoneIndex
     );
     const objectiveProgress = currentMilestone
@@ -264,7 +280,7 @@ export async function getDashboardData(): Promise<DashboardData | null> {
         )
       : 0;
 
-    const totalMilestones = roadmap.milestones?.length ?? 0;
+    const totalMilestones = getTotalMilestoneCount(roadmap);
     const recalibrationOffer =
       aspiration.end_date && roadmap.baseline_date
         ? needsRecalibration(
@@ -298,6 +314,7 @@ export async function getDashboardData(): Promise<DashboardData | null> {
       missedWeighIns,
       showReEntryPrompt: missedWeighIns >= 2 && !weighIn.canWeighIn,
       showRecalibrationOffer: recalibrationOffer,
+      canUseFinishEarly: isGuruPlan(planTier),
     };
   }
 
@@ -339,8 +356,13 @@ export async function getDashboardData(): Promise<DashboardData | null> {
     }
   }
 
+  const canCreateRoadmap =
+    isGuruPlan(planTier) || roadmapCount < FREE_MAX_ROADMAPS;
+
   return {
     displayName,
+    planTier,
+    canCreateRoadmap,
     overallScore,
     trends,
     driftAlert,

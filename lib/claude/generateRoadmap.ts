@@ -2,16 +2,21 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { resolveRoadmapModel } from "@/lib/claude/models";
 import {
+  createRoadmapOutputSchema,
   parseRoadmapJson,
-  roadmapOutputSchema,
   type RoadmapOutput,
 } from "@/lib/claude/roadmapSchema";
+import { getMilestoneCount, MAX_MILESTONES } from "@/lib/roadmap/milestoneCount";
 import { formatMonthYear, monthsBetween } from "@/lib/utils/dateHelpers";
 import type { Aspiration, Capability } from "@/types";
 
 export interface GenerateRoadmapInput {
   aspiration: Aspiration;
   capabilities: Capability[];
+  /** How many milestone intervals Claude should generate (defaults to full plan). */
+  milestonesToGenerate?: number;
+  /** Full roadmap length for prompt context when generating a partial roadmap. */
+  totalMilestoneCount?: number;
 }
 
 export interface GenerateRoadmapCallbacks {
@@ -19,7 +24,6 @@ export interface GenerateRoadmapCallbacks {
   onStatus?: (message: string) => void;
 }
 
-const MAX_MILESTONES = 6;
 const MAX_ACTION_ITEMS = 2;
 const MAX_CAPABILITY_CHARS = 5_000;
 const MAX_REQUIREMENTS_CHARS = 2_000;
@@ -49,10 +53,6 @@ function buildCapabilitiesText(capabilities: Capability[]): string {
   return truncate(combined, MAX_CAPABILITY_CHARS);
 }
 
-function getMilestoneCount(months: number): number {
-  return Math.min(MAX_MILESTONES, Math.max(4, Math.ceil(months / 2)));
-}
-
 function getClient(): Anthropic {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -70,7 +70,14 @@ export function buildRoadmapPrompt(input: GenerateRoadmapInput): string {
   const months = Math.max(1, monthsBetween(start, end));
   const interval = aspiration.interval ?? "weekly";
   const hours = aspiration.hours_per_week ?? 3;
-  const milestoneCount = getMilestoneCount(months);
+  const totalMilestoneCount =
+    input.totalMilestoneCount ?? getMilestoneCount(months);
+  const milestoneCount =
+    input.milestonesToGenerate ?? totalMilestoneCount;
+  const isPartial = milestoneCount < totalMilestoneCount;
+  const milestoneScope = isPartial
+    ? `exactly ${milestoneCount} milestones for the FIRST ${milestoneCount} intervals of a ${totalMilestoneCount}-milestone journey (intervals 1–${milestoneCount} only; do not generate later periods)`
+    : `exactly ${milestoneCount} milestones spanning the full timeframe`;
 
   const urlBlock = aspiration.scraped_requirements
     ? `\nTarget page requirements:\n${truncate(aspiration.scraped_requirements, MAX_REQUIREMENTS_CHARS)}`
@@ -94,7 +101,7 @@ Requirements:
 - skills_needed: up to 10 specific skills
 - quick_wins: exactly 3 actions for the next 48 hours
 - risk_factors: 2–3 risks with mitigations
-- milestones: exactly ${milestoneCount} milestones spanning the full timeframe. Group ${interval} periods (e.g. "Weeks 1–4"). Each milestone: title, difficulty_tag (Foundation|Building|Advanced|Final Push), brief description, up to 2 focus_areas, exactly ${MAX_ACTION_ITEMS} action_items with effort estimates and 1 resource each (mark free or paid with cost)
+- milestones: ${milestoneScope}. Group ${interval} periods (e.g. "Weeks 1–4"). Each milestone: index starting at 0, label, title, difficulty_tag (Foundation|Building|Advanced|Final Push), brief description, up to 2 focus_areas, exactly ${MAX_ACTION_ITEMS} action_items with effort estimates and 1 resource each (mark free or paid with cost)
 - cost_summary: free path, paid path, recommended cost, brief notes
 
 Be concise. Prefer quality over quantity.`;
@@ -106,7 +113,13 @@ export async function generateRoadmap(
 ): Promise<RoadmapOutput> {
   const client = getClient();
   const prompt = buildRoadmapPrompt(input);
-  const format = zodOutputFormat(roadmapOutputSchema);
+  const end = new Date(`${input.aspiration.end_date}T00:00:00`);
+  const months = Math.max(1, monthsBetween(new Date(), end));
+  const totalMilestoneCount =
+    input.totalMilestoneCount ?? getMilestoneCount(months);
+  const milestoneCount =
+    input.milestonesToGenerate ?? totalMilestoneCount;
+  const format = zodOutputFormat(createRoadmapOutputSchema(milestoneCount));
 
   callbacks.onStatus?.("Generating your gap analysis and roadmap…");
 
@@ -136,5 +149,7 @@ export async function generateRoadmap(
     .map((block) => block.text)
     .join("");
 
-  return parseRoadmapJson(text);
+  return parseRoadmapJson(text, milestoneCount);
 }
+
+export { getMilestoneCount, MAX_MILESTONES };

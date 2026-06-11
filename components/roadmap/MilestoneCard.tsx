@@ -2,6 +2,7 @@ import {
   FinishEarlyButton,
   type EarlyFinishFeedback,
 } from "@/components/roadmap/FinishEarlyButton";
+import { GuruUpsell } from "@/components/plans/GuruUpsell";
 import { cn } from "@/lib/utils";
 import type { MilestoneDifficulty, RoadmapMilestone } from "@/types";
 import { Check } from "lucide-react";
@@ -37,6 +38,8 @@ interface MilestoneCardProps {
   fullyDone?: boolean;
   itemStates?: { done: boolean }[];
   onEarlyFinishComplete?: (feedback: EarlyFinishFeedback) => void;
+  isLocked?: boolean;
+  canUseFinishEarly?: boolean;
 }
 
 export function MilestoneCard({
@@ -48,16 +51,18 @@ export function MilestoneCard({
   fullyDone = false,
   itemStates = [],
   onEarlyFinishComplete,
+  isLocked = false,
+  canUseFinishEarly = true,
 }: MilestoneCardProps) {
   const styles = DIFFICULTY_STYLES[milestone.difficulty_tag];
 
   return (
     <article
       className={cn(
-        "rounded-xl border bg-surface p-5",
+        "relative overflow-hidden rounded-xl border bg-surface p-5",
         styles.border,
-        isCurrent && "ring-1 ring-primary/50",
-        isPast && "opacity-60"
+        isCurrent && !isLocked && "ring-1 ring-primary/50",
+        isPast && !isLocked && "opacity-60"
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -90,6 +95,7 @@ export function MilestoneCard({
         </div>
       </div>
 
+      <div className={cn(isLocked && "select-none blur-sm")}>
       <p className="mt-3 text-sm text-text-muted">{milestone.description}</p>
 
       {milestone.focus_areas.length > 0 && (
@@ -166,12 +172,13 @@ export function MilestoneCard({
                   ))}
                 </ul>
               )}
-              {isCurrent && roadmapId && !done && (
+              {isCurrent && roadmapId && !done && !isLocked && (
                 <FinishEarlyButton
                   roadmapId={roadmapId}
                   milestoneIndex={milestone.index}
                   actionItemIndex={index}
                   taskLabel={item.task}
+                  canUse={canUseFinishEarly}
                   onComplete={onEarlyFinishComplete}
                 />
               )}
@@ -179,6 +186,18 @@ export function MilestoneCard({
           );
         })}
       </ul>
+      </div>
+
+      {isLocked && (
+        <div className="absolute inset-0 flex items-center justify-center bg-surface/80 p-4 backdrop-blur-[2px]">
+          <GuruUpsell
+            compact
+            title="Guru unlocks this interval"
+            description="Upgrade to reveal personalized objectives and resources for the rest of your roadmap."
+            className="max-w-sm border-0 bg-transparent p-0"
+          />
+        </div>
+      )}
     </article>
   );
 }

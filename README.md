@@ -66,7 +66,3 @@ The product is built around one idea: **it's a scale, not a to-do list.** A bath
    Open [http://localhost:3000](http://localhost:3000).
 
 ---
-
-## Deploy
-
-Hosted on **Vercel** with env vars mirrored from `.env.local`. `vercel.json` runs a daily cron at 14:00 UTC for weigh-in reminder emails.

@@ -2,6 +2,8 @@ import {
   buildResourceGroups,
   type RoadmapResourceGroup,
 } from "@/lib/resources/aggregateResources";
+import { getUserPlan } from "@/lib/plans/getUserPlan";
+import { getStoredMilestonesForPlan } from "@/lib/plans/roadmapAccess";
 import { createClient } from "@/lib/supabase/server";
 import type { Aspiration, RoadmapMilestone } from "@/types";
 
@@ -14,6 +16,9 @@ export async function getResourceLibrary(): Promise<RoadmapResourceGroup[]> {
   } = await supabase.auth.getUser();
 
   if (!user) return [];
+
+  const plan = await getUserPlan(supabase, user.id);
+  if (plan !== "guru") return [];
 
   const { data: aspirations } = await supabase
     .from("aspirations")
@@ -47,7 +52,10 @@ export async function getResourceLibrary(): Promise<RoadmapResourceGroup[]> {
         status: row.status as Aspiration["status"],
         roadmaps: list.map((r) => ({
           id: r.id,
-          milestones: r.milestones as RoadmapMilestone[] | null,
+          milestones: getStoredMilestonesForPlan(
+            r.milestones as RoadmapMilestone[] | null,
+            plan
+          ),
           skills_needed: r.skills_needed as string[] | null,
           version: r.version,
           generated_at: r.generated_at,

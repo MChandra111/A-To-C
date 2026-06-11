@@ -18,7 +18,9 @@ export default async function ProfilePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, avatar_url, reminder_enabled, reminder_day_of_week")
+    .select(
+      "display_name, avatar_url, plan_tier, reminder_enabled, reminder_day_of_week"
+    )
     .eq("id", user!.id)
     .single();
 
@@ -64,7 +66,7 @@ export default async function ProfilePage() {
         </CardHeader>
         <CardContent>
           <ReminderSettings
-            userId={user!.id}
+            planTier={profile?.plan_tier === "guru" ? "guru" : "free"}
             initialEnabled={profile?.reminder_enabled ?? false}
             initialDay={profile?.reminder_day_of_week ?? null}
           />

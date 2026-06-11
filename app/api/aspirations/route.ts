@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { assertCanCreateRoadmap } from "@/lib/plans/limits";
 import { findOnboardingAspiration } from "@/lib/supabase/draftAspiration";
 import { ASPIRATION_CATEGORIES, type AspirationCategory } from "@/types";
 
@@ -74,6 +75,14 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ aspiration_id: data.id, aspiration: data });
+  }
+
+  try {
+    await assertCanCreateRoadmap(supabase, user.id);
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Roadmap limit reached";
+    return NextResponse.json({ error: message }, { status: 403 });
   }
 
   const { data, error } = await supabase

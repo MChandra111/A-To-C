@@ -18,6 +18,8 @@ interface MilestoneTimelineProps {
   milestones: RoadmapMilestone[];
   completions: ActionCompletion[];
   currentMilestoneIndex: number;
+  lockedFromIndex?: number | null;
+  canUseFinishEarly?: boolean;
 }
 
 export function MilestoneTimeline({
@@ -25,6 +27,8 @@ export function MilestoneTimeline({
   milestones,
   completions,
   currentMilestoneIndex,
+  lockedFromIndex = null,
+  canUseFinishEarly = true,
 }: MilestoneTimelineProps) {
   const router = useRouter();
   const [modalFeedback, setModalFeedback] =
@@ -44,9 +48,11 @@ export function MilestoneTimeline({
   return (
     <>
       <div className="space-y-4">
-        {sorted.map((milestone) => {
-          const isCurrent = milestone.index === currentMilestoneIndex;
-          const isPast = milestone.index < currentMilestoneIndex;
+        {sorted.map((milestone, position) => {
+          const isLocked =
+            lockedFromIndex != null && milestone.index >= lockedFromIndex;
+          const isCurrent = !isLocked && milestone.index === currentMilestoneIndex;
+          const isPast = !isLocked && milestone.index < currentMilestoneIndex;
           const progress = getMilestoneObjectiveProgress(milestone, completions);
           const fullyDone = isMilestoneFullyDone(milestone, completions);
 
@@ -56,7 +62,7 @@ export function MilestoneTimeline({
 
           return (
             <MilestoneCard
-              key={milestone.index}
+              key={`${roadmapId}-milestone-${position}-${milestone.index}`}
               milestone={milestone}
               roadmapId={roadmapId}
               isCurrent={isCurrent}
@@ -65,6 +71,8 @@ export function MilestoneTimeline({
               fullyDone={fullyDone}
               itemStates={itemStates}
               onEarlyFinishComplete={handleEarlyFinishComplete}
+              isLocked={isLocked}
+              canUseFinishEarly={canUseFinishEarly}
             />
           );
         })}

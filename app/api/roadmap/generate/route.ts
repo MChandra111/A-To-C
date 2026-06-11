@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { generateRoadmap } from "@/lib/claude/generateRoadmap";
+import { generateRoadmap, getMilestoneCount } from "@/lib/claude/generateRoadmap";
+import { FREE_UNLOCKED_MILESTONES } from "@/lib/plans/constants";
+import { getUserPlan, isGuruPlan } from "@/lib/plans/getUserPlan";
 import { assertGenerationAllowed } from "@/lib/roadmap/rateLimit";
+import { monthsBetween } from "@/lib/utils/dateHelpers";
 import type { Aspiration, Capability } from "@/types";
 
 export const maxDuration = 300;
@@ -109,6 +112,14 @@ export async function POST(request: Request) {
       try {
         send("status", { message: "Analyzing your capabilities and aspiration…" });
 
+        const plan = await getUserPlan(supabase, user.id);
+        const end = new Date(`${aspiration.end_date}T00:00:00`);
+        const months = Math.max(1, monthsBetween(new Date(), end));
+        const totalMilestoneCount = getMilestoneCount(months);
+        const milestonesToGenerate = isGuruPlan(plan)
+          ? totalMilestoneCount
+          : Math.min(FREE_UNLOCKED_MILESTONES, totalMilestoneCount);
+
         let roadmapOutput;
 
         try {
@@ -116,6 +127,8 @@ export async function POST(request: Request) {
             {
               aspiration: aspiration as Aspiration,
               capabilities: (capabilities ?? []) as Capability[],
+              milestonesToGenerate,
+              totalMilestoneCount,
             },
             {
               onChunk: (chunk) => send("chunk", { text: chunk }),
@@ -145,7 +158,10 @@ export async function POST(request: Request) {
             quick_wins: roadmapOutput.quick_wins,
             risk_factors: roadmapOutput.risk_factors,
             milestones: roadmapOutput.milestones,
-            cost_summary: roadmapOutput.cost_summary,
+            total_milestone_count: totalMilestoneCount,
+            cost_summary: isGuruPlan(plan)
+              ? roadmapOutput.cost_summary
+              : null,
             baseline_date: today,
           })
           .select("id")

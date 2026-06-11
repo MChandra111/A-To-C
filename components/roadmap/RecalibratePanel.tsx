@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { GuruUpsell } from "@/components/plans/GuruUpsell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ interface RecalibratePanelProps {
   currentEndDate: string | null;
   currentInterval: string | null;
   defaultOpen?: boolean;
+  canRecalibrate?: boolean;
 }
 
 export function RecalibratePanel({
@@ -21,6 +23,7 @@ export function RecalibratePanel({
   currentEndDate,
   currentInterval,
   defaultOpen = false,
+  canRecalibrate = true,
 }: RecalibratePanelProps) {
   const router = useRouter();
   const [open, setOpen] = useState(defaultOpen);
@@ -58,6 +61,16 @@ export function RecalibratePanel({
     } finally {
       setLoading(false);
     }
+  }
+
+  if (!canRecalibrate) {
+    return (
+      <GuruUpsell
+        compact
+        title="Recalibration is a Guru feature"
+        description="Upgrade to rebuild remaining intervals when your timeline or progress changes."
+      />
+    );
   }
 
   if (!open) {

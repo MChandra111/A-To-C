@@ -40,8 +40,9 @@ export async function GET(request: Request) {
 
   const { data: profiles } = await admin
     .from("profiles")
-    .select("id, display_name, reminder_day_of_week")
+    .select("id, display_name, reminder_day_of_week, plan_tier")
     .eq("reminder_enabled", true)
+    .eq("plan_tier", "guru")
     .eq("reminder_day_of_week", dayOfWeek);
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";

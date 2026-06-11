@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { GuruUpsell } from "@/components/plans/GuruUpsell";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import type { PlanTier } from "@/types";
 
 const DAYS = [
   { value: 0, label: "Sunday" },
@@ -17,18 +18,18 @@ const DAYS = [
 ] as const;
 
 interface ReminderSettingsProps {
-  userId: string;
+  planTier: PlanTier;
   initialEnabled: boolean;
   initialDay: number | null;
 }
 
 export function ReminderSettings({
-  userId,
+  planTier,
   initialEnabled,
   initialDay,
 }: ReminderSettingsProps) {
   const router = useRouter();
-  const supabase = createClient();
+  const isGuru = planTier === "guru";
 
   const [enabled, setEnabled] = useState(initialEnabled);
   const [day, setDay] = useState(initialDay ?? 1);
@@ -43,16 +44,13 @@ export function ReminderSettings({
     setMessage(null);
 
     try {
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({
-          reminder_enabled: enabled,
-          reminder_day_of_week: enabled ? day : null,
-          reminder_time: enabled ? "14:00:00" : null,
-        })
-        .eq("id", userId);
-
-      if (updateError) throw updateError;
+      const response = await fetch("/api/profile/reminders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled, day }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Failed to save");
 
       setMessage("Reminder preferences saved.");
       router.refresh();
@@ -63,6 +61,16 @@ export function ReminderSettings({
     } finally {
       setSaving(false);
     }
+  }
+
+  if (!isGuru) {
+    return (
+      <GuruUpsell
+        title="Weigh-in reminders are a Guru feature"
+        description="Get a weekly email when it is time to step on the scale. Upgrade to Guru to enable reminders."
+        compact
+      />
+    );
   }
 
   return (

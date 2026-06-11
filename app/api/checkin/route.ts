@@ -3,6 +3,7 @@ import { generateCheckinResponse } from "@/lib/claude/generateCheckinResponse";
 import { getMilestoneByIndex } from "@/lib/checkin/milestone";
 import { resolveCurrentMilestoneIndex } from "@/lib/checkin/milestoneProgress";
 import { validateWeighInWindow } from "@/lib/checkin/weighInGate";
+import { assertMilestoneAccessible } from "@/lib/plans/validateMilestoneAccess";
 import { createClient } from "@/lib/supabase/server";
 import {
   computeInvestmentScore,
@@ -89,6 +90,18 @@ export async function POST(request: Request) {
   }
 
   const milestones = roadmap.milestones as RoadmapMilestone[] | null;
+
+  try {
+    await assertMilestoneAccessible(
+      supabase,
+      user.id,
+      roadmap,
+      body.milestone_index
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Milestone locked";
+    return Response.json({ error: message }, { status: 403 });
+  }
 
   const { data: existingCompletions } = await supabase
     .from("completions")

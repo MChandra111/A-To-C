@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { GuruLockedButton } from "@/components/plans/GuruLockedButton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,7 @@ interface FinishEarlyButtonProps {
   actionItemIndex: number;
   taskLabel: string;
   disabled?: boolean;
+  canUse?: boolean;
   className?: string;
   onComplete?: (feedback: EarlyFinishFeedback) => void;
 }
@@ -24,11 +26,21 @@ export function FinishEarlyButton({
   milestoneIndex,
   actionItemIndex,
   disabled,
+  canUse = true,
   className,
   onComplete,
 }: FinishEarlyButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (!canUse) {
+    return (
+      <GuruLockedButton
+        label="I finished this early"
+        className={className}
+      />
+    );
+  }
 
   async function handleFinishEarly() {
     setLoading(true);

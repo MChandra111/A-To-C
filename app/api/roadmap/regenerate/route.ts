@@ -1,3 +1,4 @@
+import { assertGuruPlan } from "@/lib/plans/limits";
 import { createClient } from "@/lib/supabase/server";
 import { regenerateRoadmapMilestones } from "@/lib/claude/regenerateRoadmap";
 import { getLastFullyCompletedMilestoneIndex } from "@/lib/checkin/milestoneProgress";
@@ -14,6 +15,13 @@ export async function POST(request: Request) {
 
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    await assertGuruPlan(supabase, user.id);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Guru plan required";
+    return Response.json({ error: message }, { status: 403 });
   }
 
   let body: {

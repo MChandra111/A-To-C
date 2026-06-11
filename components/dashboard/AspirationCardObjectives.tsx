@@ -17,12 +17,14 @@ interface AspirationCardObjectivesProps {
   roadmapId: string;
   milestone: RoadmapMilestone;
   completions: ActionCompletion[];
+  canUseFinishEarly?: boolean;
 }
 
 export function AspirationCardObjectives({
   roadmapId,
   milestone,
   completions,
+  canUseFinishEarly = true,
 }: AspirationCardObjectivesProps) {
   const router = useRouter();
   const [modalFeedback, setModalFeedback] =
@@ -71,6 +73,7 @@ export function AspirationCardObjectives({
                   milestoneIndex={milestone.index}
                   actionItemIndex={index}
                   taskLabel={item.task}
+                  canUse={canUseFinishEarly}
                   onComplete={setModalFeedback}
                 />
               )}

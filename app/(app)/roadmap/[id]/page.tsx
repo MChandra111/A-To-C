@@ -2,6 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { resolveCurrentMilestoneIndex } from "@/lib/checkin/milestoneProgress";
 import { RoadmapView } from "@/components/roadmap/RoadmapView";
+import { getUserPlan } from "@/lib/plans/getUserPlan";
+import {
+  getStoredMilestonesForPlan,
+  resolveRoadmapMilestones,
+  sanitizeRoadmapForPlan,
+} from "@/lib/plans/roadmapAccess";
 import type { Aspiration, Roadmap, RoadmapMilestone } from "@/types";
 
 interface RoadmapPageProps {
@@ -51,20 +57,40 @@ export default async function RoadmapPage({
     effort: c.effort as "done" | "partial" | "skipped",
   }));
 
-  const milestones = roadmap.milestones as RoadmapMilestone[] | null;
+  const planTier = await getUserPlan(supabase, user!.id);
+  const storedMilestones = getStoredMilestonesForPlan(
+    roadmap.milestones as RoadmapMilestone[] | null,
+    planTier
+  );
+  const resolved = resolveRoadmapMilestones(
+    roadmap as Roadmap,
+    aspiration,
+    planTier
+  );
   const currentMilestoneIndex = resolveCurrentMilestoneIndex(
-    milestones,
+    storedMilestones,
     completions
+  );
+
+  const sanitizedRoadmap = sanitizeRoadmapForPlan(
+    {
+      ...(roadmap as Roadmap),
+      milestones: resolved.milestones,
+    },
+    planTier
   );
 
   return (
     <RoadmapView
-      roadmap={roadmap as Roadmap}
+      roadmap={sanitizedRoadmap}
       aspiration={aspiration}
       investmentScore={latestScore?.score ?? 0}
       completions={completions}
       currentMilestoneIndex={currentMilestoneIndex}
       showRecalibrate={recalibrate === "1"}
+      planTier={planTier}
+      lockedFromIndex={resolved.lockedFromIndex}
+      hasLockedMilestones={resolved.hasLockedMilestones}
     />
   );
 }

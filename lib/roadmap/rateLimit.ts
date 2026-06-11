@@ -1,6 +1,7 @@
+import { DAILY_GENERATION_LIMIT_GURU } from "@/lib/plans/constants";
+import { getUserPlan, isGuruPlan } from "@/lib/plans/getUserPlan";
+import { assertCanCreateRoadmap } from "@/lib/plans/limits";
 import type { SupabaseClient } from "@supabase/supabase-js";
-
-const DAILY_GENERATION_LIMIT = 3;
 
 export async function countRoadmapGenerationsToday(
   supabase: SupabaseClient,
@@ -31,10 +32,15 @@ export async function assertGenerationAllowed(
   supabase: SupabaseClient,
   userId: string
 ): Promise<void> {
+  const plan = await getUserPlan(supabase, userId);
+  await assertCanCreateRoadmap(supabase, userId, plan);
+
+  if (!isGuruPlan(plan)) return;
+
   const count = await countRoadmapGenerationsToday(supabase, userId);
-  if (count >= DAILY_GENERATION_LIMIT) {
+  if (count >= DAILY_GENERATION_LIMIT_GURU) {
     throw new Error(
-      `Daily generation limit reached (${DAILY_GENERATION_LIMIT} per day). Try again tomorrow.`
+      `Daily generation limit reached (${DAILY_GENERATION_LIMIT_GURU} per day). Try again tomorrow.`
     );
   }
 }

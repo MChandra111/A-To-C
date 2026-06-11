@@ -28,7 +28,7 @@ export const milestoneSchema = z.object({
   action_items: z.array(actionItemSchema).min(1).max(2),
 });
 
-export const roadmapOutputSchema = z.object({
+const roadmapCoreSchema = {
   gap_analysis: z.string(),
   gap_score: z.object({
     overall: z.number().min(0).max(100),
@@ -44,30 +44,46 @@ export const roadmapOutputSchema = z.object({
       .max(4),
   }),
   skills_needed: z.array(z.string()).max(12),
-  quick_wins: z.array(
-    z.object({
-      action: z.string(),
-      time_estimate: z.string(),
-    })
-  ).length(3),
-  risk_factors: z.array(
-    z.object({
-      risk: z.string(),
-      mitigation: z.string(),
-    })
-  ).min(2).max(3),
-  milestones: z.array(milestoneSchema).min(4).max(6),
+  quick_wins: z
+    .array(
+      z.object({
+        action: z.string(),
+        time_estimate: z.string(),
+      })
+    )
+    .length(3),
+  risk_factors: z
+    .array(
+      z.object({
+        risk: z.string(),
+        mitigation: z.string(),
+      })
+    )
+    .min(2)
+    .max(3),
   cost_summary: z.object({
     free_path_estimate: z.string(),
     paid_path_estimate: z.string(),
     recommended_path_cost: z.string(),
     notes: z.string(),
   }),
-});
+};
+
+export function createRoadmapOutputSchema(milestoneCount: number) {
+  return z.object({
+    ...roadmapCoreSchema,
+    milestones: z.array(milestoneSchema).length(milestoneCount),
+  });
+}
+
+export const roadmapOutputSchema = createRoadmapOutputSchema(4);
 
 export type RoadmapOutput = z.infer<typeof roadmapOutputSchema>;
 
-export function parseRoadmapJson(raw: string): RoadmapOutput {
+export function parseRoadmapJson(
+  raw: string,
+  milestoneCount = 4
+): RoadmapOutput {
   const trimmed = raw.trim();
   const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
   const jsonText = fenced ? fenced[1].trim() : trimmed;
@@ -78,5 +94,5 @@ export function parseRoadmapJson(raw: string): RoadmapOutput {
     start >= 0 && end > start ? jsonText.slice(start, end + 1) : jsonText;
 
   const parsed: unknown = JSON.parse(candidate);
-  return roadmapOutputSchema.parse(parsed);
+  return createRoadmapOutputSchema(milestoneCount).parse(parsed);
 }

@@ -7,7 +7,8 @@ import { RepairProgressButton } from "@/components/roadmap/RepairProgressButton"
 import { ShareRoadmapButton } from "@/components/roadmap/ShareRoadmapButton";
 import type { ActionCompletion } from "@/lib/checkin/milestoneProgress";
 import { formatMonthYear } from "@/lib/utils/dateHelpers";
-import type { Aspiration, Roadmap } from "@/types";
+import { GuruUpsell } from "@/components/plans/GuruUpsell";
+import type { Aspiration, PlanTier, Roadmap } from "@/types";
 
 interface RoadmapViewProps {
   roadmap: Roadmap;
@@ -16,6 +17,9 @@ interface RoadmapViewProps {
   completions?: ActionCompletion[];
   currentMilestoneIndex?: number;
   showRecalibrate?: boolean;
+  planTier?: PlanTier;
+  lockedFromIndex?: number | null;
+  hasLockedMilestones?: boolean;
 }
 
 export function RoadmapView({
@@ -25,7 +29,11 @@ export function RoadmapView({
   completions = [],
   currentMilestoneIndex = 0,
   showRecalibrate = false,
+  planTier = "free",
+  lockedFromIndex = null,
+  hasLockedMilestones = false,
 }: RoadmapViewProps) {
+  const isGuru = planTier === "guru";
   const gapScore = roadmap.gap_score;
   const endDate = aspiration.end_date
     ? new Date(`${aspiration.end_date}T00:00:00`)
@@ -144,6 +152,13 @@ export function RoadmapView({
         </section>
       )}
 
+      {hasLockedMilestones && (
+        <GuruUpsell
+          title="You are viewing a preview of your roadmap"
+          description="The Free plan includes your first two intervals. Upgrade to Guru to unlock every period with full AI-generated objectives and resources."
+        />
+      )}
+
       {roadmap.milestones && roadmap.milestones.length > 0 && (
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-text-primary">
@@ -154,11 +169,13 @@ export function RoadmapView({
             milestones={roadmap.milestones}
             completions={completions}
             currentMilestoneIndex={currentMilestoneIndex}
+            lockedFromIndex={lockedFromIndex}
+            canUseFinishEarly={isGuru}
           />
         </section>
       )}
 
-      {roadmap.cost_summary && (
+      {isGuru && roadmap.cost_summary ? (
         <section className="rounded-xl border border-border bg-surface p-6">
           <h2 className="text-lg font-semibold text-text-primary">
             Cost summary
@@ -195,7 +212,23 @@ export function RoadmapView({
             </p>
           )}
         </section>
-      )}
+      ) : !isGuru ? (
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-text-primary">
+            Cost summary
+          </h2>
+          <p className="max-w-2xl text-sm leading-relaxed text-text-muted">
+            Estimated costs for reaching your goal on a free-only path versus a
+            recommended paid path — including courses, certifications, and tools
+            across your full roadmap.
+          </p>
+          <GuruUpsell
+            compact
+            title="Cost summary is a Guru feature"
+            description="Upgrade to see free vs paid path estimates and recommended spending for your aspiration."
+          />
+        </section>
+      ) : null}
 
       <section className="grid gap-6 border-t border-border pt-8 sm:grid-cols-2">
         <ShareRoadmapButton roadmapId={roadmap.id} />
@@ -205,6 +238,7 @@ export function RoadmapView({
           currentEndDate={aspiration.end_date}
           currentInterval={aspiration.interval}
           defaultOpen={showRecalibrate}
+          canRecalibrate={isGuru}
         />
       </section>
 

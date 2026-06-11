@@ -100,6 +100,7 @@ export function AspirationCard({ goal, showWeighIn = true }: AspirationCardProps
           roadmapId={roadmap.id}
           milestone={currentMilestone}
           completions={goal.completions}
+          canUseFinishEarly={goal.canUseFinishEarly}
         />
       )}
 
