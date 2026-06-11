@@ -19,7 +19,10 @@ A personal instrument for measuring dedication to self-investment.
    Fill in:
    - `NEXT_PUBLIC_SUPABASE_URL` — Project Settings → API → Project URL
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Project Settings → API → anon public key
-   - `SUPABASE_SERVICE_ROLE_KEY` — (for future server-side admin tasks)
+   - `SUPABASE_SERVICE_ROLE_KEY` — Project Settings → API → `service_role` (cron + share links)
+   - `RESEND_API_KEY` — [resend.com](https://resend.com) → API Keys (weigh-in reminder emails)
+   - `RESEND_FROM_EMAIL` — optional; defaults to `A-To-C <onboarding@resend.dev>` for Resend sandbox
+   - `CRON_SECRET` — random string you generate; set the same value in Vercel for cron auth
 
 4. **Enable Google OAuth** (optional)
    - Supabase Dashboard → Authentication → Providers → Google

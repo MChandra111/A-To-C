@@ -17,11 +17,8 @@ function isAuthorized(request: Request): boolean {
 }
 
 /**
- * Daily cron scaffold — runs once per day (Vercel Hobby limit).
- * Matches users by reminder day of week (UTC). On Pro, switch vercel.json
- * to an hourly schedule and re-enable hour matching below.
- *
- * TODO: integrate with Resend or SendGrid via sendWeighInReminder().
+ * Daily cron — runs once per day (Vercel Hobby limit).
+ * Matches users by reminder day of week (UTC).
  */
 export async function GET(request: Request) {
   if (!isAuthorized(request)) {
@@ -48,13 +45,28 @@ export async function GET(request: Request) {
     .eq("reminder_day_of_week", dayOfWeek);
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  let queued = 0;
-  const previews: { subject: string; user_id: string }[] = [];
+  let sent = 0;
+  let failed = 0;
+  const results: {
+    user_id: string;
+    email?: string;
+    subject: string;
+    status: "sent" | "failed" | "skipped";
+    reason?: string;
+  }[] = [];
 
   for (const profile of profiles ?? []) {
     const { data: authUser } = await admin.auth.admin.getUserById(profile.id);
     const email = authUser?.user?.email;
-    if (!email) continue;
+    if (!email) {
+      results.push({
+        user_id: profile.id,
+        subject: "",
+        status: "skipped",
+        reason: "No email on account",
+      });
+      continue;
+    }
 
     const { data: aspirations } = await admin
       .from("aspirations")
@@ -64,7 +76,16 @@ export async function GET(request: Request) {
       .limit(1);
 
     const aspiration = aspirations?.[0];
-    if (!aspiration) continue;
+    if (!aspiration) {
+      results.push({
+        user_id: profile.id,
+        email,
+        subject: "",
+        status: "skipped",
+        reason: "No active aspiration",
+      });
+      continue;
+    }
 
     const { data: roadmap } = await admin
       .from("roadmaps")
@@ -74,7 +95,16 @@ export async function GET(request: Request) {
       .limit(1)
       .maybeSingle();
 
-    if (!roadmap) continue;
+    if (!roadmap) {
+      results.push({
+        user_id: profile.id,
+        email,
+        subject: "",
+        status: "skipped",
+        reason: "No roadmap",
+      });
+      continue;
+    }
 
     const { data: scoreRows } = await admin
       .from("investment_scores")
@@ -90,21 +120,42 @@ export async function GET(request: Request) {
 
     const subject = buildWeighInReminderSubject(score);
 
-    await sendWeighInReminder(email, {
+    const outcome = await sendWeighInReminder(email, {
       displayName: profile.display_name ?? "there",
       investmentScore: score,
       aspirationTitle: aspiration.title,
       appUrl,
     });
 
-    previews.push({ subject, user_id: profile.id });
-    queued++;
+    if (outcome.sent) {
+      sent++;
+      results.push({
+        user_id: profile.id,
+        email,
+        subject,
+        status: "sent",
+      });
+    } else {
+      failed++;
+      results.push({
+        user_id: profile.id,
+        email,
+        subject,
+        status: "failed",
+        reason: outcome.reason,
+      });
+    }
   }
 
+  const resendConfigured = Boolean(process.env.RESEND_API_KEY?.trim());
+
   return Response.json({
-    ok: true,
-    queued,
-    note: "Emails not sent — provider not configured. See sendWeighInReminder().",
-    previews,
+    ok: failed === 0 || sent > 0,
+    day_of_week_utc: dayOfWeek,
+    matched: profiles?.length ?? 0,
+    sent,
+    failed,
+    resend_configured: resendConfigured,
+    results,
   });
 }

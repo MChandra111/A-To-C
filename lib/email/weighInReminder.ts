@@ -1,3 +1,5 @@
+import { Resend } from "resend";
+
 export interface WeighInReminderData {
   displayName: string;
   investmentScore: number;
@@ -5,12 +7,27 @@ export interface WeighInReminderData {
   appUrl: string;
 }
 
+export type SendWeighInReminderResult =
+  | { sent: true; id: string }
+  | { sent: false; reason: string };
+
 export function buildWeighInReminderSubject(score: number): string {
   return `Your Investment Score is ${score} — weigh-in due today`;
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 export function buildWeighInReminderHtml(data: WeighInReminderData): string {
-  const { displayName, investmentScore, aspirationTitle, appUrl } = data;
+  const displayName = escapeHtml(data.displayName);
+  const aspirationTitle = escapeHtml(data.aspirationTitle);
+  const appUrl = escapeHtml(data.appUrl);
+  const investmentScore = data.investmentScore;
 
   return `<!DOCTYPE html>
 <html>
@@ -58,21 +75,33 @@ Current Investment Score: ${data.investmentScore}
 Step on the scale: ${data.appUrl}/dashboard`;
 }
 
-/**
- * TODO: integrate with Resend or SendGrid — wire this helper into the cron
- * route once an email provider API key is configured.
- */
+function getResendFromAddress(): string {
+  return (
+    process.env.RESEND_FROM_EMAIL?.trim() || "A-To-C <onboarding@resend.dev>"
+  );
+}
+
 export async function sendWeighInReminder(
   to: string,
   data: WeighInReminderData
-): Promise<{ sent: false; reason: string }> {
-  void to;
-  void buildWeighInReminderHtml(data);
-  void buildWeighInReminderText(data);
+): Promise<SendWeighInReminderResult> {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) {
+    return { sent: false, reason: "RESEND_API_KEY is not configured" };
+  }
 
-  return {
-    sent: false,
-    reason:
-      "Email provider not configured. Set RESEND_API_KEY or SENDGRID_API_KEY and implement sendWeighInReminder.",
-  };
+  const resend = new Resend(apiKey);
+  const { data: result, error } = await resend.emails.send({
+    from: getResendFromAddress(),
+    to,
+    subject: buildWeighInReminderSubject(data.investmentScore),
+    html: buildWeighInReminderHtml(data),
+    text: buildWeighInReminderText(data),
+  });
+
+  if (error) {
+    return { sent: false, reason: error.message };
+  }
+
+  return { sent: true, id: result?.id ?? "unknown" };
 }

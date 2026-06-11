@@ -70,8 +70,7 @@ export function ReminderSettings({
     <form onSubmit={handleSubmit} className="space-y-5">
       <p className="text-sm text-text-muted">
         One email per week on your chosen day (~14:00 UTC). Reminders reference
-        your Investment Score, not your task list. Email delivery is scaffolded —
-        configure Resend or SendGrid to activate.
+        your Investment Score, not your task list.
       </p>
 
       <label className="flex cursor-pointer items-center gap-3">
