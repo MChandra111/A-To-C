@@ -8,3 +8,9 @@ export const PLAN_LABELS: Record<PlanTier, string> = {
   free: "Free",
   guru: "Guru",
 };
+
+export const GURU_PRICE_USD = 7;
+export const GURU_PRICE_LABEL = "$7.00 USD";
+export const GURU_CHECKOUT_URL =
+  process.env.NEXT_PUBLIC_GURU_CHECKOUT_URL ??
+  "https://buy.stripe.com/test_eVq00i9hZc2z4kufl753O00";

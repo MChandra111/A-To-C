@@ -2,7 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { resolveCurrentMilestoneIndex } from "@/lib/checkin/milestoneProgress";
 import { RoadmapView } from "@/components/roadmap/RoadmapView";
-import { getUserPlan } from "@/lib/plans/getUserPlan";
+import { getUserPlan, isGuruPlan } from "@/lib/plans/getUserPlan";
+import {
+  ensureRoadmapsUnlockedForUser,
+  roadmapNeedsGuruUnlock,
+} from "@/lib/plans/unlockRoadmaps";
 import {
   getStoredMilestonesForPlan,
   resolveRoadmapMilestones,
@@ -34,7 +38,7 @@ export default async function RoadmapPage({
 
   if (!roadmap) notFound();
 
-  const aspiration = roadmap.aspirations as Aspiration | null;
+  let aspiration = roadmap.aspirations as Aspiration | null;
   if (!aspiration || aspiration.user_id !== user!.id) notFound();
 
   const [{ data: latestScore }, { data: completionRows }] = await Promise.all([
@@ -58,6 +62,20 @@ export default async function RoadmapPage({
   }));
 
   const planTier = await getUserPlan(supabase, user!.id);
+
+  if (isGuruPlan(planTier) && roadmapNeedsGuruUnlock(roadmap as Roadmap)) {
+    await ensureRoadmapsUnlockedForUser(user!.id);
+    const { data: refreshed } = await supabase
+      .from("roadmaps")
+      .select("*, aspirations(*)")
+      .eq("id", id)
+      .single();
+    if (refreshed) {
+      Object.assign(roadmap, refreshed);
+      aspiration = refreshed.aspirations as Aspiration;
+    }
+  }
+
   const storedMilestones = getStoredMilestonesForPlan(
     roadmap.milestones as RoadmapMilestone[] | null,
     planTier

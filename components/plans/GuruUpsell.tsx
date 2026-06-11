@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
+import { GURU_PRICE_LABEL } from "@/lib/plans/constants";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +13,7 @@ interface GuruUpsellProps {
 
 export function GuruUpsell({
   title = "Unlock with Guru",
-  description = "Upgrade to Guru for the full roadmap, reminders, finish-early, and unlimited goals.",
+  description = `Unlock Guru with a one-time ${GURU_PRICE_LABEL} payment — full roadmap, reminders, finish-early, and more.`,
   compact = false,
   className,
 }: GuruUpsellProps) {

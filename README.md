@@ -55,9 +55,17 @@ The product is built around one idea: **it's a scale, not a to-do list.** A bath
    cp .env.example .env.local
    ```
    Required: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `ANTHROPIC_API_KEY`, `NEXT_PUBLIC_APP_URL`.  
-   Also needed for full functionality: `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `CRON_SECRET`.
+   Also needed for full functionality: `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `CRON_SECRET`.  
+   For Guru checkout: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_GURU_CHECKOUT_URL`.
 
-3. Install and run:
+3. Run migration `006_stripe_webhooks.sql` for automated Guru upgrades after payment.
+
+4. **Stripe Guru checkout** — In the Stripe Dashboard for your Payment Link:
+   - Set the **success URL** to `{NEXT_PUBLIC_APP_URL}/upgrade?checkout=success`
+   - Add a webhook endpoint `POST {NEXT_PUBLIC_APP_URL}/api/webhooks/stripe` listening for `checkout.session.completed` (and `checkout.session.async_payment_succeeded` if needed)
+   - Copy the webhook signing secret to `STRIPE_WEBHOOK_SECRET`
+
+5. Install and run:
    ```bash
    npm install
    npm run dev
