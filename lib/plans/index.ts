@@ -29,6 +29,8 @@ export {
 export { assertMilestoneAccessible } from "@/lib/plans/validateMilestoneAccess";
 export {
   ensureRoadmapsUnlockedForUser,
+  freeRoadmapNeedsIntervalRepair,
+  repairFreeRoadmapIntervals,
   roadmapNeedsGuruUnlock,
   type UnlockRoadmapsResult,
 } from "@/lib/plans/unlockRoadmaps";

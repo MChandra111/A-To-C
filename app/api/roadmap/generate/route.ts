@@ -3,6 +3,7 @@ import { generateRoadmap, getMilestoneCount } from "@/lib/claude/generateRoadmap
 import { FREE_UNLOCKED_MILESTONES } from "@/lib/plans/constants";
 import { getUserPlan, isGuruPlan } from "@/lib/plans/getUserPlan";
 import { assertGenerationAllowed } from "@/lib/roadmap/rateLimit";
+import { normalizeMilestoneIndices } from "@/lib/roadmap/normalizeMilestones";
 import { monthsBetween } from "@/lib/utils/dateHelpers";
 import type { Aspiration, Capability } from "@/types";
 
@@ -157,7 +158,7 @@ export async function POST(request: Request) {
             skills_needed: roadmapOutput.skills_needed,
             quick_wins: roadmapOutput.quick_wins,
             risk_factors: roadmapOutput.risk_factors,
-            milestones: roadmapOutput.milestones,
+            milestones: normalizeMilestoneIndices(roadmapOutput.milestones),
             total_milestone_count: totalMilestoneCount,
             cost_summary: isGuruPlan(plan)
               ? roadmapOutput.cost_summary

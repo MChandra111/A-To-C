@@ -1,6 +1,9 @@
 import { FREE_UNLOCKED_MILESTONES } from "@/lib/plans/constants";
 import { isGuruPlan } from "@/lib/plans/getUserPlan";
 import { buildPlaceholderMilestone } from "@/lib/plans/placeholderMilestones";
+import { getMilestoneCount } from "@/lib/roadmap/milestoneCount";
+import { normalizeMilestoneIndices } from "@/lib/roadmap/normalizeMilestones";
+import { monthsBetween } from "@/lib/utils/dateHelpers";
 import type {
   Aspiration,
   CheckInInterval,
@@ -17,14 +20,30 @@ export interface ResolvedRoadmapMilestones {
   hasLockedMilestones: boolean;
 }
 
-export function getTotalMilestoneCount(roadmap: {
-  milestones: RoadmapMilestone[] | null;
-  total_milestone_count?: number | null;
-}): number {
-  if (roadmap.total_milestone_count != null && roadmap.total_milestone_count > 0) {
+export function getTotalMilestoneCount(
+  roadmap: {
+    milestones: RoadmapMilestone[] | null;
+    total_milestone_count?: number | null;
+  },
+  aspiration?: Pick<Aspiration, "end_date"> | null
+): number {
+  if (
+    roadmap.total_milestone_count != null &&
+    roadmap.total_milestone_count > 0
+  ) {
     return roadmap.total_milestone_count;
   }
-  return roadmap.milestones?.length ?? 0;
+
+  const storedLen = normalizeMilestoneIndices(roadmap.milestones).length;
+  if (storedLen > FREE_UNLOCKED_MILESTONES) return storedLen;
+
+  if (aspiration?.end_date) {
+    const end = new Date(`${aspiration.end_date}T00:00:00`);
+    const months = Math.max(1, monthsBetween(new Date(), end));
+    return getMilestoneCount(months);
+  }
+
+  return storedLen;
 }
 
 export function getUnlockedMilestoneCount(plan: PlanTier): number {
@@ -35,42 +54,40 @@ export function getStoredMilestonesForPlan(
   milestones: RoadmapMilestone[] | null,
   plan: PlanTier
 ): RoadmapMilestone[] {
-  const stored = [...(milestones ?? [])].sort((a, b) => a.index - b.index);
+  const stored = normalizeMilestoneIndices(milestones);
   if (isGuruPlan(plan)) return stored;
-  return stored.filter((m) => m.index < FREE_UNLOCKED_MILESTONES);
+  return stored.slice(0, FREE_UNLOCKED_MILESTONES);
 }
 
 export function resolveRoadmapMilestones(
   roadmap: Pick<Roadmap, "milestones" | "total_milestone_count">,
-  aspiration: Pick<Aspiration, "interval">,
+  aspiration: Pick<Aspiration, "interval" | "end_date">,
   plan: PlanTier
 ): ResolvedRoadmapMilestones {
   const interval = (aspiration.interval ?? "weekly") as CheckInInterval;
-  const totalCount = getTotalMilestoneCount(roadmap);
-  const stored = getStoredMilestonesForPlan(roadmap.milestones, plan);
+  const totalCount = getTotalMilestoneCount(roadmap, aspiration);
+  const unlocked = getStoredMilestonesForPlan(roadmap.milestones, plan);
 
-  const lockedFromIndex = FREE_UNLOCKED_MILESTONES;
-  const hasLockedMilestones =
-    !isGuruPlan(plan) && totalCount > lockedFromIndex;
-
-  if (!hasLockedMilestones) {
+  if (isGuruPlan(plan) || unlocked.length >= totalCount) {
     return {
-      milestones: stored,
-      unlockedCount: stored.length,
-      totalCount: Math.max(totalCount, stored.length),
+      milestones: unlocked,
+      unlockedCount: unlocked.length,
+      totalCount: Math.max(totalCount, unlocked.length),
       lockedFromIndex: null,
       hasLockedMilestones: false,
     };
   }
 
   const placeholders: RoadmapMilestone[] = [];
-  for (let index = lockedFromIndex; index < totalCount; index++) {
+  for (let index = unlocked.length; index < totalCount; index++) {
     placeholders.push(buildPlaceholderMilestone(index, totalCount, interval));
   }
 
+  const lockedFromIndex = unlocked.length;
+
   return {
-    milestones: [...stored, ...placeholders].sort((a, b) => a.index - b.index),
-    unlockedCount: stored.length,
+    milestones: [...unlocked, ...placeholders],
+    unlockedCount: unlocked.length,
     totalCount,
     lockedFromIndex,
     hasLockedMilestones: true,

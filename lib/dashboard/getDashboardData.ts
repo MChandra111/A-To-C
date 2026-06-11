@@ -280,7 +280,7 @@ export async function getDashboardData(): Promise<DashboardData | null> {
         )
       : 0;
 
-    const totalMilestones = getTotalMilestoneCount(roadmap);
+    const totalMilestones = getTotalMilestoneCount(roadmap, aspiration);
     const recalibrationOffer =
       aspiration.end_date && roadmap.baseline_date
         ? needsRecalibration(

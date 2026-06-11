@@ -1,6 +1,8 @@
 import { unlockRemainingMilestones } from "@/lib/claude/unlockRoadmap";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { FREE_UNLOCKED_MILESTONES } from "@/lib/plans/constants";
 import { getTotalMilestoneCount } from "@/lib/plans/roadmapAccess";
+import { normalizeMilestoneIndices } from "@/lib/roadmap/normalizeMilestones";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Aspiration, Capability, Roadmap, RoadmapMilestone } from "@/types";
 
@@ -10,16 +12,98 @@ export interface UnlockRoadmapsResult {
   errors: string[];
 }
 
-export function roadmapNeedsGuruUnlock(roadmap: {
-  milestones: RoadmapMilestone[] | null;
-  total_milestone_count?: number | null;
-  cost_summary?: Roadmap["cost_summary"];
-}): boolean {
-  const stored = roadmap.milestones ?? [];
-  const total = getTotalMilestoneCount(roadmap);
+export function roadmapNeedsGuruUnlock(
+  roadmap: {
+    milestones: RoadmapMilestone[] | null;
+    total_milestone_count?: number | null;
+    cost_summary?: Roadmap["cost_summary"];
+  },
+  aspiration?: Pick<Aspiration, "end_date"> | null
+): boolean {
+  const stored = normalizeMilestoneIndices(roadmap.milestones);
+  const total = getTotalMilestoneCount(roadmap, aspiration);
   const missingMilestones = stored.length < total;
   const missingCost = roadmap.cost_summary == null;
   return missingMilestones || missingCost;
+}
+
+export function freeRoadmapNeedsIntervalRepair(
+  roadmap: Pick<Roadmap, "milestones">,
+  aspiration?: Pick<Aspiration, "end_date"> | null
+): boolean {
+  const stored = normalizeMilestoneIndices(roadmap.milestones);
+  if (stored.length >= FREE_UNLOCKED_MILESTONES) return false;
+  const total = getTotalMilestoneCount(roadmap, aspiration);
+  return total > stored.length;
+}
+
+/** Generate missing free-preview intervals (up to 2) for legacy partial roadmaps. */
+export async function repairFreeRoadmapIntervals(
+  userId: string,
+  roadmapId: string
+): Promise<boolean> {
+  const admin = createAdminClient();
+  if (!admin) return false;
+
+  const { data: roadmap } = await admin
+    .from("roadmaps")
+    .select("*, aspirations(*)")
+    .eq("id", roadmapId)
+    .single();
+
+  if (!roadmap) return false;
+
+  const aspiration = roadmap.aspirations as Aspiration | null;
+  if (!aspiration || aspiration.user_id !== userId) return false;
+  if (!freeRoadmapNeedsIntervalRepair(roadmap as Roadmap, aspiration)) return false;
+  if (!aspiration.end_date || !aspiration.interval) return false;
+
+  const existingMilestones = normalizeMilestoneIndices(
+    (roadmap.milestones ?? []) as RoadmapMilestone[]
+  );
+  const previewTarget = Math.min(
+    FREE_UNLOCKED_MILESTONES,
+    getTotalMilestoneCount(roadmap as Roadmap, aspiration)
+  );
+  const startFromIndex = existingMilestones.length;
+
+  if (startFromIndex >= previewTarget) return false;
+
+  const { data: capabilities } = await admin
+    .from("capabilities")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+
+  let generated;
+  try {
+    generated = await unlockRemainingMilestones({
+      aspiration,
+      capabilities: (capabilities ?? []) as Capability[],
+      existingMilestones,
+      totalMilestoneCount: previewTarget,
+      startFromIndex,
+      includeCostSummary: false,
+    });
+  } catch (err) {
+    console.error("Free interval repair failed:", err);
+    return false;
+  }
+
+  const merged = normalizeMilestoneIndices([
+    ...existingMilestones,
+    ...generated.milestones.map((milestone, offset) => ({
+      ...milestone,
+      index: startFromIndex + offset,
+    })),
+  ]);
+
+  const { error } = await admin
+    .from("roadmaps")
+    .update({ milestones: merged })
+    .eq("id", roadmapId);
+
+  return !error;
 }
 
 async function unlockSingleRoadmap(
@@ -36,10 +120,8 @@ async function unlockSingleRoadmap(
     return { unlocked: false, error: "Aspiration timeline incomplete" };
   }
 
-  const existingMilestones = [...(roadmap.milestones ?? [])].sort(
-    (a, b) => a.index - b.index
-  );
-  const totalMilestoneCount = getTotalMilestoneCount(roadmap);
+  const existingMilestones = normalizeMilestoneIndices(roadmap.milestones);
+  const totalMilestoneCount = getTotalMilestoneCount(roadmap, aspiration);
   const startFromIndex = existingMilestones.length;
   const missingMilestones = startFromIndex < totalMilestoneCount;
   const includeCostSummary = roadmap.cost_summary == null;
@@ -70,13 +152,13 @@ async function unlockSingleRoadmap(
   }
 
   const mergedMilestones = missingMilestones
-    ? [
+    ? normalizeMilestoneIndices([
         ...existingMilestones,
         ...generated.milestones.map((milestone, offset) => ({
           ...milestone,
           index: startFromIndex + offset,
         })),
-      ]
+      ])
     : existingMilestones;
 
   const { data: current } = await admin

@@ -5,6 +5,8 @@ import { RoadmapView } from "@/components/roadmap/RoadmapView";
 import { getUserPlan, isGuruPlan } from "@/lib/plans/getUserPlan";
 import {
   ensureRoadmapsUnlockedForUser,
+  freeRoadmapNeedsIntervalRepair,
+  repairFreeRoadmapIntervals,
   roadmapNeedsGuruUnlock,
 } from "@/lib/plans/unlockRoadmaps";
 import {
@@ -63,7 +65,26 @@ export default async function RoadmapPage({
 
   const planTier = await getUserPlan(supabase, user!.id);
 
-  if (isGuruPlan(planTier) && roadmapNeedsGuruUnlock(roadmap as Roadmap)) {
+  if (
+    !isGuruPlan(planTier) &&
+    freeRoadmapNeedsIntervalRepair(roadmap as Roadmap, aspiration)
+  ) {
+    await repairFreeRoadmapIntervals(user!.id, id);
+    const { data: repaired } = await supabase
+      .from("roadmaps")
+      .select("*, aspirations(*)")
+      .eq("id", id)
+      .single();
+    if (repaired) {
+      Object.assign(roadmap, repaired);
+      aspiration = repaired.aspirations as Aspiration;
+    }
+  }
+
+  if (
+    isGuruPlan(planTier) &&
+    roadmapNeedsGuruUnlock(roadmap as Roadmap, aspiration)
+  ) {
     await ensureRoadmapsUnlockedForUser(user!.id);
     const { data: refreshed } = await supabase
       .from("roadmaps")

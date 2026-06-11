@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
 import { EarlyFinishModal } from "@/components/roadmap/EarlyFinishModal";
 import {
   FinishEarlyButton,
   type EarlyFinishFeedback,
 } from "@/components/roadmap/FinishEarlyButton";
-import { cn } from "@/lib/utils";
+import { ObjectiveActionItem } from "@/components/roadmap/ObjectiveActionItem";
 import type { ActionCompletion } from "@/lib/checkin/milestoneProgress";
 import { isActionItemDoneEarly } from "@/lib/checkin/milestoneProgress";
 import type { RoadmapMilestone } from "@/types";
@@ -39,7 +38,7 @@ export function AspirationCardObjectives({
 
   return (
     <>
-      <ul className="mt-4 space-y-3 border-t border-border pt-4">
+      <ul className="mt-4 space-y-4 border-t border-border pt-4">
         {milestone.action_items.map((item, index) => {
           const done = isActionItemDoneEarly(
             completions,
@@ -48,36 +47,23 @@ export function AspirationCardObjectives({
           );
 
           return (
-            <li key={index} className="space-y-2">
-              <div className="flex items-start gap-2">
-                {done && (
-                  <Check
-                    className="mt-0.5 h-4 w-4 shrink-0 text-success"
-                    aria-hidden
+            <ObjectiveActionItem
+              key={index}
+              item={item}
+              done={done}
+              actions={
+                !done ? (
+                  <FinishEarlyButton
+                    roadmapId={roadmapId}
+                    milestoneIndex={milestone.index}
+                    actionItemIndex={index}
+                    taskLabel={item.task}
+                    canUse={canUseFinishEarly}
+                    onComplete={setModalFeedback}
                   />
-                )}
-                <p
-                  className={cn(
-                    "min-w-0 flex-1 text-sm",
-                    done
-                      ? "text-text-muted line-through"
-                      : "text-text-primary"
-                  )}
-                >
-                  {item.task}
-                </p>
-              </div>
-              {!done && (
-                <FinishEarlyButton
-                  roadmapId={roadmapId}
-                  milestoneIndex={milestone.index}
-                  actionItemIndex={index}
-                  taskLabel={item.task}
-                  canUse={canUseFinishEarly}
-                  onComplete={setModalFeedback}
-                />
-              )}
-            </li>
+                ) : undefined
+              }
+            />
           );
         })}
       </ul>
