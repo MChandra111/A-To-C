@@ -55,4 +55,4 @@ https://a-to-c.vercel.app/
 - [Remove plans and make everything FOSS]
 ---
 
-<p align="center">Built by <a href="#">your name</a></p>
+<p align="center">Built by <a href="https://mchandra.dev/">Maheshwar Chandra</a></p>
